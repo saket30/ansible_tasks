@@ -1,0 +1,71 @@
+-  name: docker_configuration
+   gather_facts: No
+   hosts: all
+   tasks:
+   - name: Install yum utils
+     yum:
+       name: yum-utils
+       state: latest
+
+   - name: Install device-mapper-persistent-data
+     yum:
+       name: device-mapper-persistent-data
+       state: latest
+
+   - name: Install lvm2
+     yum:
+       name: lvm2
+       state: latest
+
+   - name: Adding docker repo
+     yum_repository:
+      name: download.docker.com_linux_centos_7_x86_64_stable_
+      description: download.docker.com_linux_centos_7_x86_64_stable_
+      file: download.docker.com_linux_centos_7_x86_64_stable_
+      baseurl: "https://download.docker.com/linux/centos/7/x86_64/stable/"
+      enabled: yes
+      gpgcheck: no
+
+   - name: Install Docker
+     shell: "yum install --nobest docker-ce -y"
+     register: docker
+
+   - name: docker installed successfully
+     debug:
+       var: docker
+       var: docker
+
+   - name: Start Docker service
+     service:
+       name: docker
+       state: started
+       enabled: yes
+     become: yes
+     register: d_service
+
+   - name: docker service started successfully
+     debug:
+       var: d_service
+
+   - name: docker-py
+     shell: "pip3 install docker"
+
+   - name: pull an image
+     docker_image:
+       name: httpd
+       source: pull
+
+   - name: creating a httpd container
+     docker_container:
+       name: myhttpd
+       image: httpd
+       state: started
+       published_ports:
+       - "6379:80"
+       volumes:
+       - "/var/www/html/:/usr/local/apache2/htdocs/:ro"
+     register: container
+
+   - name: container launched successfully
+     debug:
+       var: container
