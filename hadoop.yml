@@ -1,0 +1,97 @@
+- name: namenode configuration
+  hosts: web2
+  gather_facts: no
+  vars_prompt:
+  - name: n_dir
+    prompt: "Enter namenode directory name for creating namenode"
+    private: no
+
+  - name: n_ip
+    prompt: "Enter namenode ip----------eg. 192.0.0.0"
+    private: no
+
+  - name: hadoop_port
+    prompt: "Enter hadoop port number"
+    private: no
+
+  tasks:
+  - name: copying hadoop software
+    copy:
+     src: "/root/hadoop-1.2.1-1.x86_64.rpm"
+     dest: "/root/soft/"
+
+  - name: copying java software
+    copy:
+     src: "/root/jdk-8u171-linux-x64.rpm"
+     dest: "/root/soft"
+
+  - name: checking whether java package is already installed of not
+    shell: "java -version"
+    register: java_ver
+    ignore_errors: yes
+
+  - name: checking whether hadoop package is already installed of not
+    shell: "hadoop -version"
+    register: hadoop_ver
+    ignore_errors: yes
+
+  - name: java -version output
+    debug:
+      var: java_ver
+
+  - name: hadoop -version output
+    debug:
+      var: hadoop_ver
+
+  - name: installing java packages
+    shell: "rpm -i /root/soft/jdk-8u171-linux-x64.rpm"
+    register: java_installed
+    when: java_ver.rc == 127
+
+  - name: java success code
+    debug:
+     var: java_installed.stdout
+
+  - name: installing hadoop packages
+    shell: "rpm -i /root/soft/hadoop-1.2.1-1.x86_64.rpm --force"
+    register: hadoop_installed
+    when: hadoop_ver.rc == 127 and  ( java_ver.rc == 0 or java_installed.rc == 0 )
+
+  - name: hadoop success code
+    debug:
+     var: hadoop_installed.stderr_lines
+
+  - name: creating datanode directory
+    file:
+     path: "{{ n_dir }}"
+     state: directory
+     mode: "0777"
+
+  - name: copying hdfs-site file
+    template:
+     src: "n_hdfs-site.xml"
+     dest: "/etc/hadoop/hdfs-site.xml"
+
+  - name: copying core-site file
+    template:
+     src: "n_core-site.xml"
+     dest: "/etc/hadoop/core-site.xml"
+
+  - name: formatting hadoop namenode directory
+    shell: "echo Y | hadoop namenode -format"
+    register: format
+
+  - name: format successfully
+    debug:
+     var: format.stderr_lines
+
+  - name: starting service
+    shell: "hadoop-daemon.sh start namenode"
+
+  - name: success code
+    shell: "jps"
+    register: success
+
+  - debug:
+          var: success.stdout_line
+~
