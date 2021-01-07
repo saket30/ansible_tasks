@@ -1,0 +1,17 @@
+- hosts: <TN IP>
+  become: True
+  become_user: root
+  tasks:
+      - include_vars: "{{ lookup('first_found, params')}}"
+        vars:
+          params:
+             files:
+             - '{{ansible_os_family}}.yml'
+
+      - debug:
+          msg:
+              "installing {{ package }} software"
+
+      - package:
+          name: "{{ package }}"
+          state: present
