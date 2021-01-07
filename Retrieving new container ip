@@ -1,0 +1,63 @@
+- hosts: [newhosts]
+  tasks:
+
+  - name: "yum configuration..."
+    yum_repository:
+       name: "{{ item.name }}"
+       description: "{{ item.des }}"
+       baseurl: "{{ item.url }}"
+       gpgcheck: no
+
+    loop:
+    -  { name: "docker_repo" , des: "this is for testing purpose" , url: "https://download.docker.com/linux/centos/7/x86_64/stable/" }
+    -  { name: "re1" , des: "test repo" , url: "/run/media/root/RHEL-8-0-0-BaseOS-x86_64/AppStream" }
+    -  { name: "re2" , des: "test repo 1" , url: "/run/media/root/RHEL-8-0-0-BaseOS-x86_64/BaseOS"}
+    
+  - name: "installing docker-ce"   
+    package:
+       name: "docker-ce-18.06.3.ce-3.el7.x86_64"
+       state: present
+
+  - pip:
+       name: "docker"
+  
+  - name: "starting docker"
+    service:
+       name: "docker"
+       state: started
+  
+  - file:
+       path: "/web_"
+       state: directory
+
+  - copy:
+       src: "/x.html"
+       dest: "/web_"
+
+  - name: "pull httpd docker image"
+    docker_image:
+       name: "httpd"
+       source: pull
+
+  - firewalld:
+       immediate: yes
+       service: "http" 
+       state: enabled
+       permanent: yes
+  
+  - docker_container:
+       name: "dock_web11"
+       image: httpd
+       state: started
+       exposed_ports:
+       - "80"
+       ports:
+       - "428:80"
+       volumes: 
+       - /web_:/usr/local/apache2/htdocs/
+
+- hosts: localhost
+  tasks:  
+  - lineinfile:
+       line: "{{ hostvars['managed_node_ip']['docker_container']['NetworkSettings']['IPAddress'] }}"
+       path: "/inven.txt" 
